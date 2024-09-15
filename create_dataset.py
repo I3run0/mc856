@@ -3,8 +3,10 @@ import os
 import requests
 import argparse
 import zipfile
+import zstandard as zstd
 import io
 import re
+import shutil
 
 CVE_DIR = 'CVE'
 PACKAGES_PATH = 'PACKAGES/pypicache.json'
@@ -35,14 +37,16 @@ def download_repology_package_data():
         response = requests.get(REPOLOGY_PYPI_URL)
         response.raise_for_status()
 
-        # Save the downloaded file
-        os.makedirs(os.path.dirname(PACKAGES_PATH), exist_ok=True)
-        with open(PACKAGES_PATH, 'wb') as f:
-            f.write(response.content)
+        # Decompress the .zst file
+        dctx = zstd.ZstdDecompressor()
+        with dctx.stream_reader(io.BytesIO(response.content)) as reader:
+            with open(PACKAGES_PATH, 'wb') as f:
+                shutil.copyfileobj(reader, f)
         print(f"Saved package metadata to {PACKAGES_PATH}")
     except requests.exceptions.RequestException as e:
         print(f"Failed to download package metadata: {e}")
-
+    except zstd.ZstdError as e:
+        print(f"Failed to decompress .zst file: {e}")
 
 def load_json_file(filepath):
     """Helper function to load a JSON file and handle errors."""
@@ -168,13 +172,13 @@ def parse_arguments():
 
 
 def main():
-    # Download CVE data and package data
-    download_and_extract_cve_data()
-    download_repology_package_data()
-
     """Main function to process and save the package metadata with linked CVEs."""
     args = parse_arguments()
     output_path = args.output
+
+    # Download CVE data and package data
+    download_and_extract_cve_data()
+    download_repology_package_data()
 
     package_data = link_cve_with_packages()
 
