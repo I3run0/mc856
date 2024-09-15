@@ -2,11 +2,46 @@ import json
 import os
 import requests
 import argparse
+import zipfile
+import io
 import re
 
 CVE_DIR = 'CVE'
 PACKAGES_PATH = 'PACKAGES/pypicache.json'
 PYPI_URL = 'https://pypi.org/pypi/{package}/json'
+OSV_CVE_URL = 'https://osv-vulnerabilities.storage.googleapis.com/PyPI/all.zip'
+REPOLOGY_PYPI_URL = 'https://pypicache.repology.org/pypicache.json.zst'
+
+
+def download_and_extract_cve_data():
+    """Download and extract the CVEs from the all.zip file."""
+    print("Downloading CVE data from:", OSV_CVE_URL)
+    try:
+        response = requests.get(OSV_CVE_URL)
+        response.raise_for_status()
+
+        # Extract the zip file in memory
+        with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+            z.extractall(CVE_DIR)
+        print(f"Extracted CVEs to {CVE_DIR}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to download CVE data: {e}")
+
+
+def download_repology_package_data():
+    """Download the package metadata from the Repology PyPi cache."""
+    print("Downloading package metadata from Repology:", REPOLOGY_PYPI_URL)
+    try:
+        response = requests.get(REPOLOGY_PYPI_URL)
+        response.raise_for_status()
+
+        # Save the downloaded file
+        os.makedirs(os.path.dirname(PACKAGES_PATH), exist_ok=True)
+        with open(PACKAGES_PATH, 'wb') as f:
+            f.write(response.content)
+        print(f"Saved package metadata to {PACKAGES_PATH}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to download package metadata: {e}")
 
 
 def load_json_file(filepath):
@@ -133,6 +168,10 @@ def parse_arguments():
 
 
 def main():
+    # Download CVE data and package data
+    download_and_extract_cve_data()
+    download_repology_package_data()
+
     """Main function to process and save the package metadata with linked CVEs."""
     args = parse_arguments()
     output_path = args.output
