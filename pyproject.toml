@@ -18,7 +18,7 @@ polars = {extras = ["pyarrow"], version = "^0.19.12"}
 pre-commit = "^3.0.0"
 
 [tool.poetry.scripts]
-pypi_data_downloader = "pypi_data_downloader.cli:main"
+pypi_data_downloader = "dataset-2.pypi_data_downloader.cli:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
