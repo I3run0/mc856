@@ -1,5 +1,8 @@
 dataset/CVE
 dataset/pypi-json-data
 dataset/dataset.json
+dataset/*
+dataset/*/*
+dataset/pypi-json-data
 *.swp
 .venv/*
