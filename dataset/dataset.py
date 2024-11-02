@@ -2,6 +2,7 @@ import json
 import os
 import argparse
 from pathlib import Path
+from packaging.version import Version
 
 CVE_DIR = 'CVE'
 PYPI_JSON_DATA = './pypi-json-data/release_data/'
@@ -35,9 +36,29 @@ def collect_cve_data():
     return cves
 
 
-def process_package(package_path, cves, output_file, is_first):
+def get_the_last_version(package_data):
+    last_version = Version('0.0.0')
+    last_version_key = ''
+    for version in package_data:
+        try:
+            v = Version(version) 
+            if v > last_version:
+                last_version = v
+                last_version_key = version
+        except:
+            print(f"Error parsing version {version} of package {package_data[version]['info'].get('name')}")
+    
+    return last_version_key
+
+def process_package(package_path, output_file, is_first):
     """Process a single package by linking it with CVEs and writing it to the output file."""
-    package_data = list(load_json_file(package_path).items())[-1][1]
+    packages_data = load_json_file(package_path)
+    latest_version = get_the_last_version(packages_data)
+
+    if latest_version not in packages_data:
+        return is_first
+
+    package_data = packages_data[latest_version]
 
     if not package_data or 'info' not in package_data or 'name' not in package_data['info']:
         return is_first  # If the package is invalid, return the original is_first flag
@@ -50,9 +71,11 @@ def process_package(package_path, cves, output_file, is_first):
     linked_data = {
         'name': package_name,
         'last_serial': package_data.get('last_serial', None),
+        'version': package_data['info'].get('version', None),
+        'require_python': package_data['info'].get('requires_python', None),
         'require_dist': package_data['info'].get('requires_dist', []),
         'package_vulnerabilities': package_data.get('vulnerabilities', []),
-        'advisor_vulnerabilities': cves.get(package_name, [])
+       # 'advisor_vulnerabilities': cves.get(package_name, [])
     }
     
     # Write to file immediately
@@ -63,7 +86,7 @@ def process_package(package_path, cves, output_file, is_first):
     return False  # Indicate that this is no longer the first package
 
 
-def process_packages_and_write(cves, output_path):
+def process_packages_and_write(output_path):
     """Process each package and write the output incrementally."""
     package_dir = Path(PYPI_JSON_DATA)
 
@@ -74,7 +97,7 @@ def process_packages_and_write(cves, output_path):
             is_first = True  # Track if we are writing the first package
             for package_path in package_dir.glob('**/*.json'):
                 if package_path.is_file():
-                    is_first = process_package(package_path.as_posix(), cves, output_file, is_first)
+                    is_first = process_package(package_path.as_posix(), output_file, is_first)
                     print(f'Writing package {package_path}')
             output_file.write("\n]")  # End the JSON array
         print(f"Data successfully written to {output_path}")
@@ -95,10 +118,10 @@ def main():
     output_path = args.output
 
     # Collect all CVE data
-    cves = collect_cve_data()
+    #cves = collect_cve_data()
 
     # Process each package and write the results to the output file incrementally
-    process_packages_and_write(cves, output_path)
+    process_packages_and_write(output_path)
 
 
 if __name__ == "__main__":
