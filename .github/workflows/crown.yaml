@@ -43,3 +43,5 @@ jobs:
           message: "Scheduled data update from Github Actions"
           push: true
           fetch: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
