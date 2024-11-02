@@ -10,7 +10,7 @@ jobs:
   release-data:
     name: Release Data
     runs-on: ubuntu-latest
-    if: github.repository == 'pypi-data/pypi-json-data'
+    if: github.repository == '|3run0/mc856'
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
