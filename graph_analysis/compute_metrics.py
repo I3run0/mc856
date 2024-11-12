@@ -32,13 +32,10 @@ def compute_metrics(graph: nx.Graph, metric_class, subset=None):
 
 
 def main():
-    # Initialize argparse
     parser = argparse.ArgumentParser(description="Compute and save graph metrics")
     
-    # Create subparsers for each metric type
     subparsers = parser.add_subparsers(dest="metric_names", help="Available metrics")
 
-    # Create subcommand for each metric
     subcommands = {
         'pagerank': ComputePageRank,
         'clustering_coefficient': ComputeClusteringCoefficient,
@@ -78,22 +75,16 @@ def main():
             help="Name of the output JSON file (default is metrics_results.json)"
         )
 
-    # Parse the command-line arguments
     args = parser.parse_args()
-
-    # Load the graph from the provided file
-    graph = build_dependency_graph_from_json(args.input_file)  # Assuming this function loads the graph from a file
-
+    graph = build_dependency_graph_from_json(args.input_file)  
     results = {}
 
-    # If a metric is specified, compute it
     if args.metric_names:
         metric_class = subcommands[args.metric_names]
         subset = random.sample(list(graph.nodes()), args.subset_size)
         result = compute_metrics(graph, metric_class, subset)
         results[args.metric_names] = result
 
-    # Save all the metrics to a single JSON file
     save_results_to_json(results, args.output_file)
 
 
